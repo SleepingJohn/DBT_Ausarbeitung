@@ -1,13 +1,14 @@
 \documentclass[12pt]{article}\pagestyle{myheadings}
 
-\title{Questionnaire}
+\title{DBT Prüfungsfragen}
 
-\markright{Compiler Ausarbeitung}
+\markright{DBT Ausarbeitung}
+\author{Johannes Spilka}
 
 \usepackage{amsmath,amssymb,amsthm,amsfonts,graphics}
 \usepackage{listings}
-\usepackage{graphics}
-\graphicspath{../../../../../Pictures/}
+\usepackage{grffile}
+\usepackage{graphicx}
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
@@ -24,6 +25,7 @@
 
 \begin{document}
 
+\maketitle
 \begin{enumerate}
 
 \item \textbf{Discuss the 5 tuning-principals, give examples:} \\
@@ -62,22 +64,245 @@ Beispiel Problem: \\
 Mögliche Lösung: In Zeit und verfügbaren Platz aufteilen.
 \item[-]Zeitaufteilung: lange Transaktionen dann laufen lassen wenn wenig online Transaktionaktivität herrscht.\\
 \item[-]Platzaufteilung: lange Transaktionen(wenn sie nur gelesen gehören) nur dann lesen on seperate hardware.\\
-\item[-] serialize(reihenweise anordnen)lange Transaktionen so dass, diese nicht miteinader kolladieren.\\ \\
-\includegraphics[scale=0.5]{\includegraphics[scale=1]{Partio.jpg} }
-
-
-
+\item[-] serialize(reihenweise anordnen)lange Transaktionen so dass, diese nicht miteinader kolladieren.\\
+Weitere Beispiele siehe slides \\
+\begin{center}
+\includegraphics[scale=0.8]{bottleneck.jpg}  
+\end{center}
 \item start-up costs are high runnig costs are low
-\item render on the server what is due on the server
-\item be prepared for trade -offs 
+Meistens ist die Anstartzeit lange zum bsp beim starten eines Autos, oder Glühbirne die die größte Energie benötigt beim ein und ausschalten.\\
+Bei Datenbank Systemen ist das nicht anders.\\
+\item [-]Wenn man Daten von der Festplatte liest ist es (ressourcen)teuer die operation zu lesen aber dann können mit highspeed Daten übermittelt werden.\\\
+-$>$Häufig genutzte Tabellen sollten der Reihe nach angelegt werden.\\
+Gilt auch für RAM(random accesed Memory)wenn man daten sequentiell from RAM scant ist das schneller als wenn man es von verschiedenen Orten herholen muss.
+\\
+\item[-]Netzwerk Latenz 
+Sehr großer Overhead beim senden von Nachrichten.
+Kaum zusätzliche Kosten vom senden von großen Nachrichten im Vergleich zu kleinen Nachrichten.\\
+--$>$ einige größere Datenpakete zu schicken ist besser als mehrere kleine.\\
+Query overhead: bevor eine Anfrage ausgeführt werden kann, wird sie zuerst geparsed,optimiert, und die Datenpfade müssen ausgewählt werden. \\
+die Ergebnisse der open genannten Instruktionen können gecached werden.\\
+\item[-]Connection Overhead: Beim Verbindungaufbau entstehen hohe Kosten: netzwerk verindung aufbauen, user bestätigen, Verbindungsparameter eroieren.\\
+Es ist meistens sinnvoler ein SELECT zu machen und über die Ergebnisse zu iterieren als mehrmals SELECT in einer loop aufzurufen um ans Ergebniss zu kommen\\
+--$>$ Das Ziel ist es den benötigten Effect den man braucht mit so wenigen Starts wie möglich zu schaffen.
+
+\item render on the server what is due on the server\\
+Relative Datenverarbeitung von Client und Server\\
+Wenn der Server überladen ist dann übergibt man Aufgaben dem Client um den Server zu entlasten. Bsp: CPU\\
+Da die relevanten Informationen am Server sind ist eine Server Lösung effizienter, wie zb mit einem trigger der nur dann auslöst wenn Veränderungen gemacht werden.\\
+Im Grunde ist es wichitg die Arbeit wichtig aufzuspalten und nicht Sachen am Client machst der eig auf dem Server erledigt gehört.\\
+\item be prepared for trade -offs \\
+Die Geschwindigkeit zu erhöhen ist nicht gratis.
+Es kostet neue main memory,speicherplatz, neue CPUs etz.\\
+Einen Query zu beschleunigen resultiert vlt darin einen anderen zu verlangsamen.\\
+Man muss sich immer Konsequenzen bewusst sein und sich überlegen wieviel man bezahlen will/kann um etwas zu beschleunigen.
 \end{itemize}
 
 
+\item \textbf{Explain write-ahead logging and how the logging mechanism can be tuned.} \\
+
+\item \textbf{Query Tuning/Query Processing} \\
+Beim Query Tuning wird eine Anfrage neu geschrieben um schneller zu laufen.
+Hat keine schlechten Nebeneffekte!
+Beim Query Processing gibt es folgende Schritte:
+\item[1)]Parser:\\
+dbekommt als Input eine SQL query und liefert eine relationale Algebra expression als Output\\
+\item[2)]Optimizer\\
+verarbeitet die r a expression zu einem query plan.
+\\
+Ein query plan wird in 3 schritten erstellt:
+-equivalente Umformung : Ergeben das selbe Ergebniss aber die Ausführzeit variiert oft stark.
+-Bschriftung der Notation der algebra expression. Eine algebra expression ist kein Query plan : es muss genauer Überlegt werden. zb welchen index man nimmt für joins oder selects, welchen Algo man nutzen will: Hash join oder sort-merge, pipelinig, etz..
+-Kosteneinschätzung
+Sehr schwer da man nur schätzen kann und es eine große Anzahl an query plans gibt.
+Heuristiken anwenden um vielversprechende query plans auszuwählen.\\
+\item[3)]Execution engine\\
+der query plan wird ausgeführt und liefert das Ergebniss des Querys zum User.\\ \\
+\newpage
+Query Tunig:\\
+Vermeide unnötige Temporäre Tabellen wenn zb auch Index genutzt werden kann.\\
+Verwende kein HAVING wenn WHERE verwendet werden kann.\\
+Views nur mit Vorsicht nutzen, mit Views werden Queries vereinfacht dargestellt bzw "verpackt", jedoch sind sie nie schneller sondern manchmal sogar langsamer.
+\begin{center}
+\includegraphics[scale=0.8]{query_tuning.jpg}
+\end{center}
+
+Ein Beispiel aus den Folien.
+Wenn man zwei einen Join auf zwei geclusterte Indexe ausführt kann man einen merge join machen welcher (sehr!)schnell ist.\\
+Weiteres ist es schneller numerisch nach der \textit{ssnum} zu suchen als nach einem String (name)\\
+Sometimes use UNION statt OR.
+
+
+\item \textbf{How to avoid DISTINCT. Give an example of a nested query and rewrite it. Explain different nested query
+types.
+} \\ \\
+\textit{DISTINCT} entfernt Duplikate aus den Ergebnissen des Querys.\\
+\textit{priviliged} table: Die Attribute die durch SELECT zurückgegeben werden besitzen einen Schlüssel (contain a key).
+\begin{verbatim}
+SELECT ssnum
+FROM Employee, Techdept
+WHERE Employee.dept = Techdept.dept
+\end{verbatim}
+Employee ist eine priviligierte Tabelle, select stellt ssnum dar welches ein key von Employee ist.\\
+\textit{Reachability} Man hat 2 Tabellen R und S .
+R reaches S wenn R und S gleichermaßern verbunden sind und das join Attribut in R ein key von R ist.\\
+Ein Tupel von S ist mit mindesten einem Tupel von R verbunden.\\
+Reachability ist transitive.\\
+Diese Anfrage gibt vlt Duplikate zurück:
+\begin{verbatim}
+SELECT ssnum
+FROM Employee, Techdept
+WHERE Employee.manager = Techdept.manager
+\end{verbatim}
+Weil manager kein Schlüssel von Techdept ist.\\
+Daher erreicht Techdept nicht den privilged Table von Employee.\\------------------------------------------------------------------------------------------ \\
+Diese Query gibt \underline{keine} Duplikate zurück:
+\begin{verbatim}
+SELECT ssnum, Techdept.dept
+FROM Employee, Techdept
+WHERE Employee.manager = Techdept.manager
+\end{verbatim}
+Sowohl Techdept als auch Employee sind priviligierte Tabellen.\\ vermeiden indem man schaut ob es sich um einen priviliged table handelt weil dann hat man einen key der einzigartig ist und mit dem man in der Query dann garantiert keine Duplikate bekommt, weiters muss man auf die Reachabillity achten also es kann sein das vlt 2 Tables keine gemeinsamkeiten haben können trotzdem dank transitivität und geschickten querys alle Tabellen erreicht werden.\\ \\
+Nested Querys:\\
+Eine nested Query oder sub-query ist Select Abfrage innerhalb einer WHERE Abfrage.\\
+Eine Subquery liefert ein Ergebniss um dies dann an die Haupt-Query weiterzuverwenden.
+\textbf{\textit{Correlated} subqueries}
+Ist eine nested query welche Werte von der äußeren Query hernimmt um etwas zu berechnen.
+Daher dies einmal für jede Zeile berechnet werden muss kann es sehr langsam sein.
+\textbf{\textit{Un-correlated} subqueries} 
+Ist eine nested Query welche keinen Bezug zur äußeren Query hat und ihre Abfrage ganz allein  ausführt.\\ \\
+Rewritting a nested Query:\\
+Step 1) Man kreiert eine temporäre Tabelle:\\-GROUP BY von zusammenhängenden attributen von der nested Query.(diese müssen gleich sein)\\
+-Verwende nicht zusammenhängende Voraussetzungen von der sub-query um die temporäre Tabelle zu kreieren.\\
+in diesem Fall : Employee.dept = Techdept.dept ist die qualification.\\
+Step 2) Man joint die temporären Tabelle mit der äuseren Abfrage welches die condition ersetzt : Techdept.dept wird zu Temp.dept\\
+Das \begin{verbatim}
+SELECT ssnum
+FROM Employee e1, Techdept
+WHERE salary = (SELECT AVG(e2.salary)
+FROM Employee e2, Techdept
+WHERE e2.dept = e1.dept
+AND e2.dept = Techdept.dept)
+\end{verbatim}
+wird zu
+\begin{verbatim}
+SELECT ssnum
+FROM Employee e1, Temp
+WHERE salary = avsalary
+AND e1.dept = Temp.dept;
+\end{verbatim}
+
+\item \textbf{Explain the different types of subqueries and how they can be tuned. Rewrite the following subqueries:} \\TODO\\
+\item \textbf{Explain the different Query Types.}\\Für jeden query Typen braucht es bestimmte indexe.\\
+Wir unterscheiden zwischen folgenden Query Typen: \item[-]\textit{Point query: }returnt höchstens einen Eintrag.
+\begin{verbatim}
+SELECT name
+FROM Employee
+WHERE ID = 8478
+\end{verbatim}
+\item[-]\textit{Multipoint query: }returns mehrere Einträge abhängig von der equality Kondition.
+\item[-]\textit{Range query: }auf X gibt Einträge mit Werten im Interval von X zurück.
+\item[-]\textit{match query: }Man gibt eine bestimmte geordnete sequence von Attributen vor und filtert sich so den gewünschten Wert raus:
+z.b : lastname ='Gates' AND firstname= like 'Ge\%'
+\item[-]\textit{Extremal query: }gibt Einträge von max oder min Werten von ausgewählten Attributen zurück.
+\item[-]\textit{Ordering Query: }ordnet die Einträge nach bestimmten Attribut Werten.\\
+z.b SELECT * FROM Employee ORDER BY salary
+\item[-]\textit{Grouping query: }Zerlegt die Einträge in Gruppen(meistens ist jede Partition mit einer bestimmten function versehen z.b AVG()\\SELECT dept, AVG(salary)
+FROM Employee
+GROUP BY dept
+\item[-]\textit{Join querys: }Es werden zwei oder mehr Tabellen verknüpft\\
+\item[-]\textit{prefix querys: }Geht durch den Baum und findet prefix und folgt den pointern zwischen den Index Knoten.
+\\ \\
+\newpage
+Was ist ein INDEX ?\\
+\includegraphics[scale=0.8]{what_is_an_Index.jpg}\\
+Der Key oder Schlüssel von einem Index ist zu unterscheiden:\\
+-search key: ist ein einzelnes oder eine Folge von Attributen die dazu da sind Werte in Tabellen auszulesen.\\
+-sequential key: Der Wert ist gleichbleibend, z.b counte, timestamp.\\
+non-sequential key: Der Wert ist hat keine Ordnungsnummer wie z.b ssnum , last name.\\ \\
+Der Index key ist nicht gleich unique also er ist nicht unbedingt ein key attribute wie in der Relaationalen Theorie.\\\\
+Index Characteristics: Ein Index kann oft als Tree gesehen werden (Hash, B$^+$tree)\\
+Dabei sind manche Knoten im Hauptspeicher und andere weiter unten liegende eher nicht.\\
+Fanout bezeichnet die Anzahl an Kinder die ein Knoten haben kann eine große fanout bedeuted wenige Levels.\\
+Overflow Strategies: in einen vollen index einen knoten n einfügen \\
+ein neuer Knoten n' muss zur disk zugewiesen werden.\\
+B$^+$-tree: teilt n in n und n' auf beide mit der selben Distanz zur Wurzel.\\
+hash index: n speichert pointer zu einem neuen Knoten n'(overflow chaining)
+\item \textbf{What are dense, sparse, clustering and non-clustering indexes? Discuss their advantages and disadvantages and
+when to use them.} \\
+-Sparse index: Zeiger zu Festplattenspeicher mit höchstens einem Pointer pro Festplattenspeicher seite., meistens gibt es weit weniger pointers als Einträge\\ \\
+-Dense index:Es existieren Zeiger zu individuellen Einträgen mit je einem Schlüssel pro Eintrag.
+Dense hat meistens mehr Schlüssel als Sparse weil es für jeden Eintrag einen gibt. Eine Optimierungsmöglichkeit ist es sich wiederholende Schlüssel nur einmal zu speichern mit Zeiger versehen.\\
+Die Anzahl an Pointers im  dense index ist gleich der Anzahl an pointers im sparse index * die Anzahl an Einträgen pro Seite.\\
+Der Vorteil an \textit{sparse} ist das es weniger pointer gibt und weniger pointer resultieren in weniger levels und verwenden dadurch weniger Speicher.\\
+Der Vorteil \textit{dense }index ist es das dieser abdeckend eingesetzt werden kann und sogennante "cover" quereys unterstützt, dass sind Lese-Anfragen (read querys) innerhalb der Datenstruktur, die aber nicht auf die Dateneinträge zugreifen sondern diese nur lesen.$\rightarrow$ fast!\\ \\
+Innerhalb einer Tabelle kann es deswegen logischerweise nur einen sparse index geben aber mehrere dense Indexe.\\ \\
+\underline {clustering und non-clustering Index:}\\
+Clustering bedeutet geordnet, das heißt die Einträge sind nach einem Attribut X gruppiert.\\
+Beim B$^+$ Tree sind die Einträge nach Attribut X sortiert.\\
+Es gibt nur eine geclusterten index pro Tabelle  der dense oder sparse ist.\\
+\underline{non-clustering:}\\ Keine Beschränkung von Tabellenorganisation.\\
+Es gibt mehr als einen Index pro Tabelle der immer dense ist.\\ \\
+Clustering Indexes können sparse sein und sind gut für multi-point querys um zb den letzen namen einer liste zu bekommen oder wenn der geclusterte index als B$^+$-tree implementiert ist nach Nachnamen mit dem prefix "Jo" zu filtern.
+Die Ergebnisse sind in darauffolgenden Seiten was zu Overflow pages führen kann wenn die Disk-page voll ist weil dann die überschüssigen Einträge zu den überlaufenden pages sollen.\\
+Where to use:
+\begin{verbatim}
+SELECT Employee.ssnum, Student.course
+FROM Employee, Student
+WHERE Employee.firstname = Student.firstname
+\end{verbatim}
+Index auf Employee.firstname mit einer index nested loop join, wo man für jeden Student die Employees mit dem selben Namen checkt.
+Schneller geht es mit einem Index auf beide $.$firstname Attribute mithilfe von einem Merge Join.\\
+Wir lesen beide Tabellen in sortierter Reihenfolge und mergen diese ($B^+$-tree), dadurch muss man jede Tabelle nur genau einmal lesen.\\ \\
+Der Clustering Index ist um einiges schneller als der non-cluster index.
+Der non-clustering Index ist jedoch immer sinnvoll für zb point queries wo nur ein bestimmtes resulatat gesucht wird insbesonders in Verbindung mit Index covers Query.\\
+Der vorhin genannte Overflow der passieren kann weil ein clustering index immer die Einträge auf einer nachfolgenden Seite speichert kann zb gelöst werden, indem man $A->B->C$ zu $A->B'->B''->C$ umwandelt, also die B Ergebnisse aufteilt.
+
+\item \textbf{Discuss $B^+$-tree and hash-index. Which queries are supported?}\\
+\includegraphics[scale=0.7]{BplusTree.jpg}
+Der \textbf{B$^+$-Tree} ist ein balazerter Baum mit Schlüssel-pointer Paaren, welche sortiert sind.\\
+Die Knoten müssen mindestens halb voll sein.
+Der Zugriff auf die Datensätze erfolgt von der Wurzel zum Blatt.\\
+Es ist wichtig eine möglichst kurze Key-Length zu haben um ein möglichst großes fanout zu bekommen.\\
+Die Anzahl an Levels berechnet man sich mit dem fanout = $\frac{nodesize}{keypointer-size}$ (abrunden)welche man dann einsetzt:\\
+Anzahl an Levels = $\log_{fanout*Page Ausnutzung}$(Blatt Schlüssel-pointer Paare)\\
+\\Mithilfe von Key-Kompression(kostet CPU time) kann man lange Keys kürzen.
+Sehr hilfreich bei String Keys mit zb. der Prefix Compression.\\Cagliari, Capri $\rightarrow$ Cag, Cap.\\ \\
+\textbf{Hash-Index} Eine \underline{Hash Funktion} mappt Schlüssel zu Integer Werten von $[0...n]$ (hash values)\\
+Die Schlüssel sind über den ganzen Bereich verteilt und ähnliche Schlüssel haben oft trotzdem sehr unterschiedliche hash-values.\\
+Die Hash Function agiert als "root node" vom Index Tree. Das Hash Value ist eine Bucket Number die auf buckets zugreift(haben fixe Größe).\\ Wenn ein Bucket voll ist wird ein Overflow Bucket erstellt auf den zugegriffen wird indem man dem Pointer folgt der im vollen Bucket gespeichert ist.\\ \\
+\underline{Which Queries are supported?}\\
+$B^+$-tree unterstüzt so ziemlich jeden query type: point, multi-point,range, prefix, extremal,ordering, grouping.
+Hash-Index unterstützt nur point (single disk access), multi point(single disk access to first record) und grouping(grouped records have same hash value)\\
+Hash-Index ist ungeeignet  für renage, prefix, extremal und ordering.\\
+Weil ähnliche Key Werte unterschiedlich Hash Werte haben und daher in auf verschiedenen Seiten liegen.\\
+
+
+
 \item \textbf{} \\
 \item \textbf{} \\
 \item \textbf{} \\
 \item \textbf{} \\
-\item \textbf{} \\
+Explain write-ahead logging and how the logging mechanism can be tuned. (Musterfrage in Folien)
+What is transaction chopping and how does it work? Show the algorithm on the following transactions: T1:
+R(a),R(b),W(b),R(e), T2:R(b), ... (Musterfrage in Folien)
+Explain the different types of subqueries and how they can be tuned. Rewrite the following subqueries: ...
+(SQL-Code ähnlich den Folien)
+Explain the different join strategies (+ Rechenbeispiel, ob sich ein HashJoin am Beispiel lohnt; Beispiel war
+1:1 aus den Folien)
+Erklaeren der unterschiedlichen Disk-Allocation Methoden. RAIDs erklaeren und welches RAID fuer welche
+File-Typen empfohlen wird.
+Discuss B -tree and hash-index. Which queries are supported?
+Discuss the 5 tuning-principals, give examples.
+Diskutiere die verschiedenen Join Strategien (die genaue Funktionsweise und die Anzahl der Lese- und
+Schreibzugriffe). Lohnt sich ein non-clustered Index bei folgendem Beispiel: In der Tabelle Employee sind 200
+Angestellte eingetragen, die jeweils einem von 50 Departments zugeordnet sind. Wobei ein Block 4KB groß ist
+und ein Employee Eintrag 200B benötigt. In der Tabelle TechDepts sind 10 dieser Departments eingetragen.
+Diskutiere die verschiedenen Isolation Guarantees (SQL Standard) und erkläre wie Snapshot Isolation in
+Oracle umgesetzt wird.
+
+
+
 
 \end{enumerate}
 
