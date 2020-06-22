@@ -274,12 +274,35 @@ Die Hash Function agiert als "root node" vom Index Tree. Das Hash Value ist eine
 \underline{Which Queries are supported?}\\
 $B^+$-tree unterstüzt so ziemlich jeden query type: point, multi-point,range, prefix, extremal,ordering, grouping.
 Hash-Index unterstützt nur point (single disk access), multi point(single disk access to first record) und grouping(grouped records have same hash value)\\
-Hash-Index ist ungeeignet  für renage, prefix, extremal und ordering.\\
-Weil ähnliche Key Werte unterschiedlich Hash Werte haben und daher in auf verschiedenen Seiten liegen.\\
+Hash-Index ist ungeeignet  für range, prefix, extremal und ordering.\\
+Weil ähnliche Key Werte unterschiedlich Hash Werte haben und daher auf verschiedenen Seiten liegen.\\
+Bei einer Point query eignet sich ein Hash Index am besten da der nicht auf die Disk zugegriffen werden muss und der key einzigartig ist, bucket overflow is unwahrscheinlicher.\\
+Bei einer Multipoint query eignet sich am besten ein $B^+$Tree weil die Einträge auf aufeinander folgenden Seiten sind.(sowie range query). \\Bei Hash problematisch weil dann alle relevanten Einträge in einem Bucket sind. $\rightarrow$ overflow chain.\\ \\
+Composite Indexes sind Indexe auf mehr als ein Attribute also z.b auf lastname,firstname.
+Ist oft effizienter als zwie single-attribute indexe, vorallem effizeint für Prefix querys.
+Im $B^+$Tree kann es zu sehr vielen Layern kommen aufgrund der großen Keysize.
 
+\item \textbf{Explain the different join strategies (+ Rechenbeispiel, ob sich ein HashJoin am Beispiel lohnt; Beispiel war
+1:1 aus den Folien)}\\
 
+geg: Relation R(outer) und S(inner):\\
+R:$ n_{r}$ = 5000 records, $b_{r}$ = 100 disk blocks, 0.4MB\\
+S: $n_{s}$ = 10000 records, $b_{s}$ = 400 disk blocks, 1.6MB
+\begin{itemize}
+\item Naive Nested Loop join:\\
+Nimmt jeden Eintrag von R und durchsucht alle Einträge von S nach Übereinstimmungen.
+\item Block Nested Loop Join:\\
+Vergleicht alle Reihen von jedem Block von R mit allen Einträgen in S.
+S wird für jeden Eintrag in S einmal gescannt.
+\item Indexed Nested loop join: \\Durchsucht jede  Reihe von R nach Übereinstimmungen in S mithilfe eines Indexes.\\
+Es ist effizient wenn es ein index cover join ist, oder wenn R weniger Einträge als S hat pro Seite.
+\item Merge Join(zwei geclusterte indexe):\\
+scant R und S in sortierter Reihenfolge und fügt diese zusammen(merge), R und S werden je nur einmal gelesen.
+\item Hash Join(equality, no index):
+Man hashed beide Tabellen in Buckets mit der selben Hash Funktion.\\
+joint die Paare von zusammengehörigen buckets in der main memory.
 
-\item \textbf{} \\
+\end{itemize}
 \item \textbf{} \\
 \item \textbf{} \\
 \item \textbf{} \\
@@ -288,8 +311,7 @@ What is transaction chopping and how does it work? Show the algorithm on the fol
 R(a),R(b),W(b),R(e), T2:R(b), ... (Musterfrage in Folien)
 Explain the different types of subqueries and how they can be tuned. Rewrite the following subqueries: ...
 (SQL-Code ähnlich den Folien)
-Explain the different join strategies (+ Rechenbeispiel, ob sich ein HashJoin am Beispiel lohnt; Beispiel war
-1:1 aus den Folien)
+
 Erklaeren der unterschiedlichen Disk-Allocation Methoden. RAIDs erklaeren und welches RAID fuer welche
 File-Typen empfohlen wird.
 Discuss B -tree and hash-index. Which queries are supported?
