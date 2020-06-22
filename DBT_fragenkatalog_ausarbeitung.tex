@@ -1,0 +1,84 @@
+\documentclass[12pt]{article}\pagestyle{myheadings}
+
+\title{Questionnaire}
+
+\markright{Compiler Ausarbeitung}
+
+\usepackage{amsmath,amssymb,amsthm,amsfonts,graphics}
+\usepackage{listings}
+\usepackage{graphics}
+\graphicspath{../../../../../Pictures/}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem*{definition}{Definition}
+
+\renewcommand{\qedsymbol}{\ensuremath{\blacksquare}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}} 
+
+\begin{document}
+
+\begin{enumerate}
+
+\item \textbf{Discuss the 5 tuning-principals, give examples:} \\
+\begin{itemize}
+\item think globally, fix logically\\
+global denken: das Problem finden und nicht nur dauerweise behandeln\\
+lokal fixen mit minimalen Eingriffen um mögliceh sideeffects so gut es geht zu verhindern.\\
+Zum Beispiel wenn Festplatte sehr überarbeitet ist was tun ?
+\textbf{Lösungsweg a:} Man kauft einfach noch mehr Disks (local thinking)\\
+Wenn man global denkt schaut man lieber wo ist die ganze Disk Aktivität generiert?\\
+\item[-]fehlt ein index bei einem häufig auftretenden query? (dann fügt man einen query hinzu)
+\item[-]der buffer der Datenbank ist zu klein ? so kann man den Buffer erhöhen.
+\item[-]Protokoll und häufig genutzte Daten teilen sich die gleiche Festplatte? Einfach das Protokol auf eine andere Disk verschieben.\\
+---$>$ Die Ursache zu beheben ist günsiter und effizienter als nur ständig die Symptome zu bekämpfen.\\
+\textbf{Lösungsweg b:} Die Query mit der längsten Laufzeit bechleunigen.\\
+Die langsamste Query ist vlt die unwichtigste und bringt kaum bessere Systemleistung! Besser ist es die wichtigen Querys zu beschleunigen.\\
+\textbf{Lösungsweg c:} Die Query die gesamt die meiste Zeit benötigt beschleunigen.\\Die Query die die meiste Zeit braucht beschleunigen.
+Vielleicht ist die Query unnütz und kann verworfen werden, bzw verbessert werden.\\ \\
+\textit{Es ist wichtig auf das ganze System zu schauen (think globally)bei einer Fehlersuche und es dort zu beheben wo es auftritt(fix locally)}
+\item partitioning breaks bottlenecks \\
+Selten sind alle Teile eines Systems voll ausgeschöpft\\
+oft schränkt ein teil die gesamte Perfomance ein dieses TEil ist das sogenannte Bottleneck.\\
+Beispiel: Highway Traffic jam.
+1)Fahrer schneller durch enge Abschnitte fahren lassen\\
+2)Mehrere Bahnen mehrspurige Strecken.
+3)Fahrer darauf hinweisen rush-hour zu meiden.
+\\
+-Mög 1 wär ein  lokaler fix.(add index)\\
+-Mög 2 und 3 nennt man Partitionierung(Aufteilung).\\ \\
+Zwei basic Partitionierungsstrategien sind:
+\quad dividiere load über mehr Ressourcen(add lanes)\\
+\quad verteile load über einen größeren Zeitraum (avoid rush-hour)\\ \\
+Beispiel Problem: \\
+-deadlocks zwingen längere Tranaktionen zum Abbruch
+-lange Transaktionen verwenden alle Ressourcen(zb. Memory buffer)
+Mögliche Lösung: In Zeit und verfügbaren Platz aufteilen.
+\item[-]Zeitaufteilung: lange Transaktionen dann laufen lassen wenn wenig online Transaktionaktivität herrscht.\\
+\item[-]Platzaufteilung: lange Transaktionen(wenn sie nur gelesen gehören) nur dann lesen on seperate hardware.\\
+\item[-] serialize(reihenweise anordnen)lange Transaktionen so dass, diese nicht miteinader kolladieren.\\ \\
+\includegraphics[scale=0.5]{\includegraphics[scale=1]{Partio.jpg} }
+
+
+
+\item start-up costs are high runnig costs are low
+\item render on the server what is due on the server
+\item be prepared for trade -offs 
+\end{itemize}
+
+
+\item \textbf{} \\
+\item \textbf{} \\
+\item \textbf{} \\
+\item \textbf{} \\
+\item \textbf{} \\
+
+\end{enumerate}
+
+\end{document}
