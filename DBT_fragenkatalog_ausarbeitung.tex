@@ -303,19 +303,57 @@ Man hashed beide Tabellen in Buckets mit der selben Hash Funktion.\\
 joint die Paare von zusammengehörigen buckets in der main memory.
 
 \end{itemize}
+\item \textbf{Explain write-ahead logging and how the logging mechanism can be tuned. (Musterfrage in Folien)} \\
+Lösung für das Recovering.
+\underline{WAL commit:} 
+Bei einem commit werden hier nur die after images persistent im log gespeichert.\\
+Die anderen data diles werden irgwann später geupdated.\\
+\underline{WAL abort:}
+Es gibt zwei Varianten:
+\item[1] das before image wird explizit gespeichert. 
+\item[2] verwenden das auf der datenbank gespeicherte before image.\\
+Es muss aber sichergestellt werden das diese before Bilder sicher nicht überschreiben werden.\\generell werden dirty pages zurück auf die disk geschreiben wenn der Puffer im Hauptspeicher voll ist. $\rightarrow$ deswegen wird meistens Variante 1 benutzt.\\
+Tuning of logging system:\\
+\item[1] Log on seperate Disk:
+Update Transaktionen: werden immer in den Log geschrieben also auf die Disk.\\
+Wenn log und data files auf der selben Disk liegen kommt es zu Disk seeds.\\
+Seperate disk for log: sequentielles schreiben und lesen ist um ein vielfaches schneller.
+Weiteres kann man über den Puffer im Hauptspeicher aussteigen um Partial writes zu vermeiden.
+\item[2]Group Commit: Man schreibt eine vollständige Seite vom Log Buffer auf die Festplatte in dem unter anderen das Before Image enthalten ist.\\
+Die Seiten sind jedoch oft ned voll, deswegen bündelt man diesen eine Schreibvorgang um den Durchsatz des Systems zu erhöhen.\\
+Der Nachteil ist das einzelne Transaktionen auf ihre commits warten müssen, und unter anderen ihre Datensperre behalten.\\ \\
+WAL Buffer und Group Commit:
+Man kann die Write-ahead loggin Puffergröße und deren flush intervall verändern. Je größer der Puffer desto mehr Änderungen passen hinein\\
+Intervall erhöhen wann eine Pufferseite auf die Festplatte geschrieben wird.
+Es kann einzeln eingestellt werden wie lang eine Transaktion maximal warten soll bis die group voll ist und wie groß die group sein soll.
+\item[3]WAL Tuning: synchronous:commit: ist on\\
+Alle Durability Anforderungen vollständig.
+Dies wird erreicht indem das Commit an die Transactions erst gesendet wird wenn fsync alle Daten erfolgreich in den persistenten Speicher geschrieben hat.\\
+Die Idee ist es nicht zu warten bis das passiert ist sondern das commit schon während des Schreibvorgangs an den Client der die Transaktion gestartet hat zu senden.(Dies kann für jede Transaktion einzeln eingestellt werden)\\
+Worst-case:keine inkonsitente Db, aber es könnten teile der Transaktionen in data files enthalten sein.\\Das Problem ist das der Client immer noch denkt das seine Transaktionen in der Db dauerhaft gespeichert sind.
+Die risk period ist die Zeit zwischen dem gesendeten commit und dem tatsächlichen commit.\\
+Die zeit lässt sich berechnen mit 3* wal_write_delay.\\
+Ohne fsync könnte die Db in einem inkosisten Zustand endet.\\
+\item[4]Tuinig Data Writes: \\
+Beim commit müssen alle zu commiteten Seiten aus dem Puffer und den logs in die Data files geschriebn werden.\\
+Nicht unmittelbar weil der Schreib Lese Kopf erst an die richtige Stelle der Festplatte bringen.\\
+Sinnvoll ist es die Schreibvorgänge zu bündeln so das möglichst viele Seiten geschrieben werden. Weiteres kann man eine Seite genau dann schreibn falls sich der Schreibkopf genau dann an der richtigen Stelle befindet.\\
+Desto weniger checkpoints desto mehr dirty pages sind im puffer.\\
+Kommt es zu zuvielen checkpoints kann man sich mit checkpoint_warnings(30s) warnen lassen und wenn nötig sollte man dann die max_wal_size zu erhöhen.\\
+jedoch bei kostet der Wiederstart ohne checkpoints nach einem Fehler länger als mit checkpoints diesen Tradoff ist zu Tunen.
+
+\item \textbf{Erklaeren der unterschiedlichen Disk-Allocation Methoden. RAIDs erklaeren und welches RAID fuer welche
+File-Typen empfohlen wird. } \\
 \item \textbf{} \\
 \item \textbf{} \\
 \item \textbf{} \\
-Explain write-ahead logging and how the logging mechanism can be tuned. (Musterfrage in Folien)
 What is transaction chopping and how does it work? Show the algorithm on the following transactions: T1:
 R(a),R(b),W(b),R(e), T2:R(b), ... (Musterfrage in Folien)
 Explain the different types of subqueries and how they can be tuned. Rewrite the following subqueries: ...
 (SQL-Code ähnlich den Folien)
 
 Erklaeren der unterschiedlichen Disk-Allocation Methoden. RAIDs erklaeren und welches RAID fuer welche
-File-Typen empfohlen wird.
-Discuss B -tree and hash-index. Which queries are supported?
-Discuss the 5 tuning-principals, give examples.
+File-Typen empfohlen wird. 
 Diskutiere die verschiedenen Join Strategien (die genaue Funktionsweise und die Anzahl der Lese- und
 Schreibzugriffe). Lohnt sich ein non-clustered Index bei folgendem Beispiel: In der Tabelle Employee sind 200
 Angestellte eingetragen, die jeweils einem von 50 Departments zugeordnet sind. Wobei ein Block 4KB groß ist
