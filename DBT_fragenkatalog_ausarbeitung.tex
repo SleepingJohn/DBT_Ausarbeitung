@@ -283,7 +283,12 @@ Ist oft effizienter als zwie single-attribute indexe, vorallem effizeint für Pr
 Im $B^+$Tree kann es zu sehr vielen Layern kommen aufgrund der großen Keysize.
 
 \item \textbf{Explain the different join strategies (+ Rechenbeispiel, ob sich ein HashJoin am Beispiel lohnt; Beispiel war
-1:1 aus den Folien)}\\
+1:1 aus den Folien)\\
+oder die genaue Funktionsweise und die Anzahl der Lese- und
+Schreibzugriffe). Lohnt sich ein non-clustered Index bei folgendem Beispiel: \\
+In der Tabelle Employee sind 200
+Angestellte eingetragen, die jeweils einem von 50 Departments zugeordnet sind. Wobei ein Block 4KB groß ist
+und ein Employee Eintrag 200B benötigt. In der Tabelle TechDepts sind 10 dieser Departments eingetragen.}\\
 
 geg: Relation R(outer) und S(inner):\\
 R:$ n_{r}$ = 5000 records, $b_{r}$ = 100 disk blocks, 0.4MB\\
@@ -383,31 +388,66 @@ Kombination aus R1 und R0, jeder Datensatz wird genau einmal gespiegelt.\\Ansons
 Man erreicht damit die beste Performance und eine sehr gute Fehlertoleranz.\\
 Der Nachteil ist das man nur 50\% des Disksspeicher verwendet was teuer ist.\\
 Sehr gut geeignet für log files falls RAID 1 zu langsam ist und \\
-Auch gut wenn häufig auf den Datenfiles geschrieben wird und die Performance von RAID 5 zu langsam ist.´
-
-
- 
+Auch gut wenn häufig auf den Datenfiles geschrieben wird und die Performance von RAID 5 zu langsam ist. 
 
 \end{itemize}
 
-\item \textbf{} \\
-\item \textbf{} \\
-\item \textbf{} \\
-What is transaction chopping and how does it work? Show the algorithm on the following transactions: T1:
-R(a),R(b),W(b),R(e), T2:R(b), ... (Musterfrage in Folien)
-Explain the different types of subqueries and how they can be tuned. Rewrite the following subqueries: ...
-(SQL-Code ähnlich den Folien)
+\item \textbf{What is the meanig of ACID} \\
+Eine Transaktion ist Teil von einer Programmausführung die auf bestimmte Datennstücke zugreift und evtl auch aus updated.\\
+Es kann zu zwei Hauptproblemen kommen.\\
+Das gleichzeitig mehrere Transaktionen stattfinden und/oder Fehler in der DB, System jeglicher Art.\\
+Ein DB system muss ACID garantieren. Das bedeutet:\\
+\textbf{A}tomicity: entweder werden alle Operationen der Tansaktion oder keine ausgeführt.\\
+\textbf{C}onsistency: Die Ausführung von einer Transaktion in isolation garantiert das eine DB konsistent arbeitet.\\
+\textbf{I}solation: Jede Transaktion muss isoliert unirritiert von vlt parallel ablaufenden Transaktionen stattfinden.\\
+\textbf{D}urability: Nach jeder Transaction müssen die Änderungen selbst nach einem Zusammenbruch der DB  gespeichert/verfügbar sein.\\
 
-Erklaeren der unterschiedlichen Disk-Allocation Methoden. RAIDs erklaeren und welches RAID fuer welche
-File-Typen empfohlen wird. 
-Diskutiere die verschiedenen Join Strategien (die genaue Funktionsweise und die Anzahl der Lese- und
-Schreibzugriffe). Lohnt sich ein non-clustered Index bei folgendem Beispiel: In der Tabelle Employee sind 200
-Angestellte eingetragen, die jeweils einem von 50 Departments zugeordnet sind. Wobei ein Block 4KB groß ist
-und ein Employee Eintrag 200B benötigt. In der Tabelle TechDepts sind 10 dieser Departments eingetragen.
-Diskutiere die verschiedenen Isolation Guarantees (SQL Standard) und erkläre wie Snapshot Isolation in
+\item \textbf{Diskutiere die verschiedenen Isolation Guarantees (SQL Standard) und erkläre wie Snapshot Isolation in
 Oracle umgesetzt wird.
+} \\
+Serilizierbarkeit muss gegeben sein, ein Ablauf heißt seriell, wenn alle Schritte einer Transaktion
+vollständig ausgeführt werden, ehe die der nächsten Transaktion
+beginnen.\\
+Um Dirty-Reads, Phantom Reads oder non repeateable reads zu vermeiden gibt es dafür in SQL die Isolation Guarantees welche aus \\
+vier Leveln besteht:\\
+\begin{itemize}
+\item \textbf{Read uncommited:} dirty, non-repeatable, phantom
+möglich\\
+Dies ist das niedrigste Isolations level,Bei dieser Isolationsebene ignorieren Leseoperationen jegliche Sperren, deshalb können die die Fehler Lost Update, Dirty Read, Non-Repeatable Read und das Phantom-Problem auftreten.\\
+Wenn etwas in die DB geschreiben wird überschreibt dies nicht uncommitete Daten.\\
+\item \textbf{Read commited} non-repeatable, phantom\\ Es werden Lesesperren für die Dauer des lesens aufgesetzt und Schreibsperren über die gesamte Dauer der Transaktion.\\
+\item \textbf{Repeatable read:} phantom\\
+Es werden über die gesamte Dauer der Transaktion Schreib und Leseoperationen Sperren aufgesetzt.
+\item \textbf{Seriziable} nothing\\
+Keine der unerwünschten Ereignisse können auftreten weil eine 2-Phasen Sperre wie bei Repeatable Read angewendet wird aber als Range Lock also über die gesamte Transaktion gelegt.
+\end{itemize}
+In Oracle ist das nicht 100\% korrekt übersetzt.\\
+Vorallem beim eigentlich höchsten Sicherheitslevel "Serilizable" kann es zu update conflicten kommen und zwar wird die erst ankommende ausgeführt und die späterankommende wird abgebrochen und rückgängig geamacht.\\
+Der Vorteil ist das Lesezugriffe nie geblockt werden von keiner anderen Transaktion\\
+Bei \textit{Serizable Snapshot Isolation} werden Konflikt-Transaktionen vom System erkannt und einfach abgebrochen.
+
+\item \textbf{What is transaction chopping and how does it work? Show the algorithm on the following transactions:\\ 
+T1: Rx, Wx, Ry , Wy\\
+T2: Rx, Wx\\
+T3: Ry, Rz, Wy\\
+} 
+Algo:
+Write lists: x: T1,T2; y: T1,T3; z: $\emptyset$ (Überall wo das item i geschreiben wird.)\\
+Dann voneinader abziehen und das was überbleibt in seperate TRansaktionen packen.\\
+Bei dem Bsp oben ändert sich dann das $T_1$ in $T_{11}$ und $T_{12}$ geteilt wird.\\
+Commutative Rechenregel können richtig angeordnet bessere chopping ermöglichen.
 
 
+
+Kurze Transaktionen benötigen weniger Sperren(locks) daher ist es unwahrscheinlicher das sie geblockt werden oder ander TRansaktioonen blocken.\\
+Daher werden lange Transaktionen in kleine "gechoppt".\\
+
+
+
+
+\item \textbf{} \\
+\item \textbf{} \\
+\item \textbf{to be continued...} \\
 
 
 \end{enumerate}
