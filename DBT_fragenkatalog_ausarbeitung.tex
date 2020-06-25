@@ -332,18 +332,64 @@ Dies wird erreicht indem das Commit an die Transactions erst gesendet wird wenn 
 Die Idee ist es nicht zu warten bis das passiert ist sondern das commit schon während des Schreibvorgangs an den Client der die Transaktion gestartet hat zu senden.(Dies kann für jede Transaktion einzeln eingestellt werden)\\
 Worst-case:keine inkonsitente Db, aber es könnten teile der Transaktionen in data files enthalten sein.\\Das Problem ist das der Client immer noch denkt das seine Transaktionen in der Db dauerhaft gespeichert sind.
 Die risk period ist die Zeit zwischen dem gesendeten commit und dem tatsächlichen commit.\\
-Die zeit lässt sich berechnen mit 3* wal_write_delay.\\
+Die zeit lässt sich berechnen mit $3* wal_write_delay$.\\
 Ohne fsync könnte die Db in einem inkosisten Zustand endet.\\
-\item[4]Tuinig Data Writes: \\
+\item[4] Tuinig Data Writes: \\
 Beim commit müssen alle zu commiteten Seiten aus dem Puffer und den logs in die Data files geschriebn werden.\\
 Nicht unmittelbar weil der Schreib Lese Kopf erst an die richtige Stelle der Festplatte bringen.\\
 Sinnvoll ist es die Schreibvorgänge zu bündeln so das möglichst viele Seiten geschrieben werden. Weiteres kann man eine Seite genau dann schreibn falls sich der Schreibkopf genau dann an der richtigen Stelle befindet.\\
 Desto weniger checkpoints desto mehr dirty pages sind im puffer.\\
-Kommt es zu zuvielen checkpoints kann man sich mit checkpoint_warnings(30s) warnen lassen und wenn nötig sollte man dann die max_wal_size zu erhöhen.\\
+Kommt es zu zuvielen checkpoints kann man sich mit checkpoint\_warnings(30s) warnen lassen und wenn nötig sollte man dann die max\_wal\_size zu erhöhen.\\
 jedoch bei kostet der Wiederstart ohne checkpoints nach einem Fehler länger als mit checkpoints diesen Tradoff ist zu Tunen.
+\item \textbf{Erklaeren der unterschiedlichen Disk$-$Allocation Methoden$.$ RAIDs erklaeren und welches RAID fuer welche
+File-Typen empfohlen wird.} \\
+RAID = Redundant Array of Inexpensive Disks\\
+Ist quasi eine Zusammenfassung mehrere Festplatten die DB und das Betriebssystem wirken als wär es eine eine.
+Dafür gibt es ein Interface welches man RAID Controller nennt, das sicherstellt das man die zusammengeschalteten Disk ganz normal verwenden kann.\\
+Das Ziel davon ist die Erhöhung des Durchsatzes und/oder die Erhöhung der Fehlertoleranz.\\
+\begin{itemize}
+\item RAID 0 - striping:\\
+Wir teilen die Daten in gleichgroße Stücke auf (genannt \textsf{stripes}) \\
+Die stripes werden gleichmäßig über die verfügbaren Disk verteilt.\\
+Angenommen wir haben 2 Disks und und eine Datensatz mit der Größe 8kb und einer stripe size von je  1kb.\\
+Wir verteilen auf Disk 1, 4 Datenblöcke A1,A3,A5,A7 und\\ auf Disk 2 die restlichen 4 Datenblöcke A2,A4,A6,A8 .\\
+Man sieht offensichtlich die Steigerung des Durchsatzes und der Fehlertoleranz.\\
+Beim lesen eines einzelnen Blockes ändert sich nichts, wir müssen genau einen Block von einer Disk lesen.\\
+Beim lesen von mehreren Disk kann dies parallel gemacht werden, also zb würd es beim lesen von Disk A1 und A2 viel effizienter ablaufen. sollten beide Blöcke auf der selben Disk liegen brigt es keinen Vorteil.
+Analog gilt das beim schreiben.\\
+Die Performance steigert sich deutlich ohne zusätzliche Kosten.\\
+Raid 0 ist besonders für \textbf{temporäre files} von nutzen.\\
+\item RAID 1 - mirroring:\\
+Die Daten werden gespiegelt, das heißt angenommen wir haben wieder 2 Disks, dann wird unser Datensatz\\
+auf beide Disks geschrieben. Das steigert die Fehlertoleranz deutlich da eine komplette oder n-1 Disks ausfallen können ohne das Daten verloren werden oder das System ausfällt. \\
+Beim schreiben eines Datenblocks muss dies auf alle Disks geschrieben werden, wobei dabei immer gewarten werden muss bis der Block auch auf die langsamste Disk geschrieben wurde.\\
+Festplatte und SSD zu einem Raid 1 zusammenzuschließen wär absolut dumm.\\
+Beim lesen kann man die Last verteilen und von den Disks lesen die gerade am wenigsten ausgelastet sind. Das erhöht die Lesegeschwindigkeit.\\
+Fehlertoleranz wird stark erhöht.\\
+Die Kosten steigen weil man mehr Disks kaufen muss.
+Eignet sich für log files die unter keinen Umständen verloren gehen dürfen.\\
+\item RAID 5 - rotated parity striping:\\
+Im Gegensatz zu Raid 1 werden die Daten in einer Checksumme zusätzliche gespeichert.\\
+Die Daten werden wieder in Blöcke wie in Raid 0 aufgeteilt auf n-1 Disks, das "-1" ist das zusätzliche parity stripe welches gleichmäßig über der Disk verteilt ist.\\
+zum Bespiel befindet sich der Parity stripe von Datensatz A nicht auf einer der Disk wo A1,A2,A3 gespeichert sind, damit es beim Schreiben nicht zu einem Bottleneck kommt.\\
+Beim lesen hat man Performance von 0.\\
+Beim schreiben muss man den Datenstripe und den parity stripe lesen und auch schreiben.\\
+Das liegt daran das man den parity stripe neu berechnen muss. new P' = SxorS'xorP .\\
+Um Daten zu recovern ver XORd man alle anderen Stripes des Blocks.\\
+Ausfall einer Disk nicht tragisch auch wenn man die Datenn erst neu berechnen muss.\\
+Eignet sich gut für Daten Datein und Index Datein aber nicht für logs.\\
+\item RAID 10 - mirroring + stripping:\\
+Kombination aus R1 und R0, jeder Datensatz wird genau einmal gespiegelt.\\Ansonsten wird der Datensatz in stripes aufgeteilt und über die Disks verteilt.\\
+Man erreicht damit die beste Performance und eine sehr gute Fehlertoleranz.\\
+Der Nachteil ist das man nur 50\% des Disksspeicher verwendet was teuer ist.\\
+Sehr gut geeignet für log files falls RAID 1 zu langsam ist und \\
+Auch gut wenn häufig auf den Datenfiles geschrieben wird und die Performance von RAID 5 zu langsam ist.´
 
-\item \textbf{Erklaeren der unterschiedlichen Disk-Allocation Methoden. RAIDs erklaeren und welches RAID fuer welche
-File-Typen empfohlen wird. } \\
+
+ 
+
+\end{itemize}
+
 \item \textbf{} \\
 \item \textbf{} \\
 \item \textbf{} \\
